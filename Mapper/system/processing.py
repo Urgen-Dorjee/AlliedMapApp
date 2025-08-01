@@ -11,20 +11,28 @@ def process_general_info(allied_df, general_template):
     return ensure_str_columns(output)
 
 def process_required_docs(allied_df, reqdoc_template):
-    """Explode Allied Certifications into individual required docs rows (no blanks if none)."""
+    """Explode Allied Certifications into individual required docs rows (only for workers with certifications)."""
     reqdoc_rows = []
     for _, row in allied_df.iterrows():
         pid = row.get("Id")
         certs_raw = row.get("Allied Certifications", None)
+        
+        # Enhanced validation to ensure we only process workers with actual certifications
         if (
             certs_raw is not None
-            and str(certs_raw).strip()
-            and str(certs_raw).strip().lower() != "nan"
+            and pd.notna(certs_raw)  # Check pandas null/NaN
+            and str(certs_raw).strip()  # Check not empty string
+            and str(certs_raw).strip().lower() not in ["nan", "null", "none", ""]  # Check common empty values
         ):
             certs = str(certs_raw).split(',')
+            # Track if this worker has any valid certifications
+            has_valid_certs = False
+            
             for cert in certs:
                 cert = cert.strip()
-                if cert:
+                # Only add if certification is not empty after cleaning
+                if cert and cert.lower() not in ["nan", "null", "none", "n/a", "na"]:
+                    has_valid_certs = True
                     reqdoc_rows.append({
                         "Person_key": pid,
                         "CertificationCredentialName": cert,
@@ -33,6 +41,11 @@ def process_required_docs(allied_df, reqdoc_template):
                         "Note": "",
                         "Verified": ""
                     })
+            
+            # If no valid certifications were found for this worker, they are automatically skipped
+            # (no rows added to reqdoc_rows)
+    
+    # Return empty DataFrame with proper columns if no workers have certifications
     if not reqdoc_rows:
         return pd.DataFrame(columns=reqdoc_template.columns)
     return ensure_str_columns(pd.DataFrame(reqdoc_rows, columns=reqdoc_template.columns))
