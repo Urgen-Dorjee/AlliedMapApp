@@ -38,25 +38,45 @@ def process_required_docs(allied_df, reqdoc_template):
     return ensure_str_columns(pd.DataFrame(reqdoc_rows, columns=reqdoc_template.columns))
 
 def process_specialties(allied_df, specialty_template):
-    """Explode Allied/Ancillary Specialty 1/2/3 into individual specialty rows."""
+    """Explode Allied/Ancillary Specialty 1/2/3 into individual specialty rows with deduplication."""
     specialty_rows = []
+    
     for _, row in allied_df.iterrows():
         pid = row.get("Id")
+        
+        # Step 1: Collect all specialties from all 3 columns
+        all_specialties = []
         for idx in range(1, 4):
             col = f"Allied/Ancillary Specialty {idx}"
             val = row.get(col, "")
             if pd.notna(val) and val:
+                # Split comma-separated values and clean them
                 for part in str(val).split(','):
                     part = part.strip()
                     if part:
-                        specialty_rows.append({
-                            "Person_key": pid,
-                            "Specialty": part,
-                            "Complete": "",
-                            "Complete Date": "",
-                            "Expiration Date": "",
-                            "UploadedFile": ""
-                        })
+                        all_specialties.append(part)
+        
+        # Step 2: Remove duplicates while preserving order (first occurrence)
+        unique_specialties = []
+        seen = set()
+        for specialty in all_specialties:
+            # Case-insensitive comparison for deduplication
+            specialty_lower = specialty.lower()
+            if specialty_lower not in seen:
+                unique_specialties.append(specialty)
+                seen.add(specialty_lower)
+        
+        # Step 3: Create rows for each unique specialty
+        for specialty in unique_specialties:
+            specialty_rows.append({
+                "Person_key": pid,
+                "Specialty": specialty,
+                "Complete": "",
+                "Complete Date": "",
+                "Expiration Date": "",
+                "UploadedFile": ""
+            })
+    
     if not specialty_rows:
         return pd.DataFrame(columns=specialty_template.columns)
     return ensure_str_columns(pd.DataFrame(specialty_rows, columns=specialty_template.columns))
