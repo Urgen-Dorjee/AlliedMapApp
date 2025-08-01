@@ -24,9 +24,9 @@ AlliedMapApp streamlines the migration process from Allied healthcare staffing s
 
 ### 📋 **Advanced Data Processing**
 - **General Info**: Direct field mapping with required defaults
-- **Required Docs**: Extracts and processes certifications into separate rows
-- **Specialties**: Deduplicates and compacts specialty information
-- **Data Validation**: Handles empty values and data type consistency
+- **Required Docs**: Extracts and processes certifications into separate rows (skips workers without certifications)
+- **Specialties**: Deduplicates and compacts specialty information across multiple columns
+- **Data Validation**: Robust handling of empty values, null patterns, and data type consistency
 
 ### 📤 **Flexible Output Options**
 - Individual CSV downloads for each data category
@@ -111,6 +111,9 @@ You'll need:
 | Id | Allied Certifications |
 |----|----------------------|
 | 123 | BLS, ACLS, PALS |
+| 456 | RN |
+| 789 | |
+| 999 | nan |
 
 **Output:**
 | Person_key | CertificationCredentialName | IssueComment | Expiration Date |
@@ -118,6 +121,9 @@ You'll need:
 | 123 | BLS | | |
 | 123 | ACLS | | |
 | 123 | PALS | | |
+| 456 | RN | | |
+
+*Note: Workers 789 and 999 are completely skipped (no rows created) because they have no valid certifications*
 
 ## 📁 **Project Structure**
 
@@ -175,14 +181,16 @@ FALLBACK_MAP = {
 ### **Key Functions**
 - `get_mapping()`: Handles field mapping interface
 - `apply_mapping()`: Applies user-defined mappings
-- `process_specialties()`: Deduplicates and processes specialties
-- `process_required_docs()`: Extracts certification data
+- `process_specialties()`: Deduplicates and processes specialties across multiple columns
+- `process_required_docs()`: Extracts certification data (skips workers without certifications)
 
 ### **Data Processing Features**
-- **Case-insensitive deduplication**: Handles "ICU" vs "icu"
-- **Comma-separated value splitting**: Processes multi-value fields
-- **Order preservation**: Maintains first occurrence order
-- **Null safety**: Graceful handling of empty/missing data
+- **Case-insensitive deduplication**: Handles "ICU" vs "icu" variations
+- **Comma-separated value splitting**: Processes multi-value fields intelligently
+- **Order preservation**: Maintains first occurrence order when deduplicating
+- **Enhanced validation**: Detects and skips empty patterns (nan, null, none, n/a)
+- **Worker filtering**: Completely excludes workers without valid certifications
+- **Null safety**: Graceful handling of empty/missing data across all processing
 
 ## 🤝 **Contributing**
 
